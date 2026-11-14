@@ -25,18 +25,31 @@ jobs:
           path: source
 
       - name: Pull VitaSDK Docker image
-        run: docker pull vitasdk/vitasdk:2026.08
+        run: docker pull vitasdk/vitasdk-softfp:nightly
 
-      - name: Check build script syntax
+      - name: Repair upstream CMake option array
         working-directory: source
-        run: bash -n build.sh
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("build.sh")
+          lines = p.read_text().splitlines()
+          start = next(i for i, line in enumerate(lines) if "DGANGSTAR_VERTEX_PATCH_CACHE=" in line)
+          end = next(i for i, line in enumerate(lines) if "DGANGSTAR_HOST_OPT_LEVEL=" in line)
+          for i in range(start, end):
+              lines[i] = lines[i].rstrip().rstrip("\\\\")
+              lines[i] += " \\\\"
+          lines[end] = lines[end].rstrip().rstrip("\\\\")
+          p.write_text("\\n".join(lines) + "\\n")
+          PY
+          bash -n build.sh
 
       - name: Diagnose VitaSDK softfp probe
         run: |
           docker run --rm \
             -v "${{ github.workspace }}/source:/workspace" \
             -w /workspace \
-            vitasdk/vitasdk:2026.08 \
+            vitasdk/vitasdk-softfp:nightly \
             bash -lc 'export VITASDK=/usr/local/vitasdk; python3 tools/preflight.py || { echo "===== softfp probe log ====="; cat work/preflight/softfp.log || true; exit 1; }'
 
       - name: Build VPK with VitaSDK
@@ -44,7 +57,7 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}/source:/workspace" \
             -w /workspace \
-            vitasdk/vitasdk:2026.08 \
+            vitasdk/vitasdk-softfp:nightly \
             bash -lc 'export VITASDK=/usr/local/vitasdk; bash build.sh'
 
       - name: Verify VPK exists
