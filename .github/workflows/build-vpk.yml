@@ -37,8 +37,8 @@ jobs:
           start = next(i for i, line in enumerate(lines) if "DGANGSTAR_VERTEX_PATCH_CACHE=" in line)
           end = next(i for i, line in enumerate(lines) if "DGANGSTAR_HOST_OPT_LEVEL=" in line)
           for i in range(start, end):
-              lines[i] = lines[i].rstrip().rstrip("\\\\")
-              lines[i] += " \\\\"
+              lines[i] = lines[i].rstrip().rstrip("\\")
+              lines[i] += " \\"
           lines[end] = lines[end].rstrip().rstrip("\\\\")
           p.write_text("\\n".join(lines) + "\\n")
           PY
