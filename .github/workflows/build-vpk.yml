@@ -24,37 +24,12 @@ jobs:
           repository: brenu/gangstar-rio-vita
           path: source
 
+      - name: Pull VitaSDK Docker image
+        run: docker pull vitasdk/vitasdk:2026.08
+
       - name: Check build script syntax
         working-directory: source
         run: bash -n build.sh
-
-      - name: Work around VitaSDK softfp preflight false negative
-        working-directory: source
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('tools/preflight.py')
-          s = p.read_text()
-          old = 'sys.exit(0 if probe_ok and not missing else 1)'
-          new = 'sys.exit(0 if not missing else 1)'
-          if old not in s:
-              raise SystemExit('Expected preflight exit condition not found; refusing to patch')
-          p.write_text(s.replace(old, new, 1))
-          PY
-
-      - name: Set explicit softfp linker ABI
-        working-directory: source
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('build.sh')
-          s = p.read_text()
-          needle = 'cmake -S "$PROJECT_ROOT" -B "$PROJECT_ROOT/work/build" "${CMAKE_OPTIONS[@]}"'
-          replacement = 'CMAKE_OPTIONS+=("-DCMAKE_EXE_LINKER_FLAGS=-mfloat-abi=softfp" "-DCMAKE_C_FLAGS=-mfloat-abi=softfp" "-DCMAKE_CXX_FLAGS=-mfloat-abi=softfp")\n' + needle
-          if s.count(needle) != 1:
-              raise SystemExit('Expected CMake configure line not found exactly once; refusing to patch')
-          p.write_text(s.replace(needle, replacement, 1))
-          PY
 
       - name: Build VPK with VitaSDK
         run: |
@@ -62,7 +37,7 @@ jobs:
             -v "${{ github.workspace }}/source:/workspace" \
             -w /workspace \
             vitasdk/vitasdk:2026.08 \
-            bash -lc 'export CFLAGS="-mfloat-abi=softfp" CXXFLAGS="-mfloat-abi=softfp" LDFLAGS="-mfloat-abi=softfp"; bash build.sh || { echo "===== SOFTFP LINK PROBE LOG ====="; cat work/preflight/softfp.log 2>/dev/null || true; exit 1; }'
+            bash -lc 'export VITASDK=/usr/local/vitasdk; bash build.sh'
 
       - name: Verify VPK exists
         run: |
