@@ -1,0 +1,52 @@
+name: Build Gangstar Rio VPK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-vpk.yml"
+      - "**/*.c"
+      - "**/*.cpp"
+      - "**/*.h"
+      - "CMakeLists.txt"
+      - "build.sh"
+      - "config/**"
+      - "extras/**"
+      - "lib/**"
+      - "tools/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Check build script syntax
+        run: bash -n build.sh
+
+      - name: Build VPK with VitaSDK
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            vitasdk/vitasdk:2026.08 \
+            bash -lc 'bash build.sh'
+
+      - name: Verify VPK exists
+        run: |
+          test -s work/build/gangstar_rio_wip.vpk
+          ls -lh work/build/gangstar_rio_wip.vpk
+
+      - name: Upload VPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gangstar-rio-vpk
+          path: work/build/gangstar_rio_wip.vpk
+          if-no-files-found: error
+          retention-days: 14
