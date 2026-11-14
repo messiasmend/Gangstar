@@ -40,7 +40,7 @@ jobs:
               lines[i] = lines[i].rstrip().rstrip("\\")
               lines[i] += " \\"
           lines[end] = lines[end].rstrip().rstrip("\\\\")
-          p.write_text("\\n".join(lines) + "\\n")
+          p.write_text("\n".join(lines) + "\n")
           PY
           bash -n build.sh
 
