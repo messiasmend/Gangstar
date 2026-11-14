@@ -31,10 +31,18 @@ jobs:
         working-directory: source
         run: bash -n build.sh
 
+      - name: Diagnose VitaSDK softfp probe
+        run: |
+          docker run --rm \
+            -v "\${{ github.workspace }}/source:/workspace" \
+            -w /workspace \
+            vitasdk/vitasdk:2026.08 \
+            bash -lc 'export VITASDK=/usr/local/vitasdk; python3 tools/preflight.py || { echo "===== softfp probe log ====="; cat work/preflight/softfp.log || true; exit 1; }'
+
       - name: Build VPK with VitaSDK
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}/source:/workspace" \
+            -v "\${{ github.workspace }}/source:/workspace" \
             -w /workspace \
             vitasdk/vitasdk:2026.08 \
             bash -lc 'export VITASDK=/usr/local/vitasdk; bash build.sh'
